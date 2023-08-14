@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Molecule Structure Viewer</title>
+
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #ffffff;
+      background-image: url(https://pbs.twimg.com/media/FbCPJr7XkAA1Phf?format=jpg&name=4096x4096);
+      background-size: cover;
+      background-repeat: no-repeat;
+}
+    
+    .input-group input[type="text"] {
+    font-size: 16px;
+    padding: 8px 12px;
+    border: 2px solid #fff;
+    border-radius: 4px;
+    outline: none;
+    background-color: #ffffff8f;
+}
+
+    /* .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #ffffff;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    } */
+    canvas {
+    border-radius: 35px;
+    text-align: center;
+    
+    box-shadow: 8px 7px 10px 2px #000000c7;
+}
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+      color: #ffffff;
+      font-weight: 900;
+    }
+
+    .input-group {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 30px;
+    }
+
+    .input-group label {
+      font-size: 18px;
+      margin-right: 10px;
+      color: #333333;
+    }
+
+    .input-group input[type="text"] {
+      font-size: 16px;
+      padding: 8px 12px;
+      border: 0px solid #cccccc73;
+      border-radius: 4px;
+      outline: none;
+      border-radius: 36px !important;
+      background: linear-gradient(90deg, #0c2f4e00 35%, #3c88aa63 100%);
+      box-shadow: 8px 7px 10px 2px #000000c7;
+      background-color: #07192d;
+      color: #FFF;
+    }
+
+    .input-group input[type="text"]::placeholder {
+      color: #FFF;
+
+    }
+
+    .input-group button {
+      font-size: 16px;
+      padding: 8px 16px;
+      /* background-color: #007bff; */
+      color: #ffffff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    .input-group button:hover {
+      /* background-color: #0056b3; */
+    }
+
+    .mol-container {
+      width: 100%;
+      height: 400px;
+      position: relative;
+    }
+    button{
+      border-radius: 50px !important;
+      background: linear-gradient(0deg, #0c2f4e 35%, #3c88aa 100%);
+      box-shadow: 8px 7px 10px 2px #000000c7;
+    }
+    .text-center{
+      color: #ffffff;
+      font-weight: 900;
+      text-shadow: 2px 2px 10px #000;
+      margin-top: 20px;
+    }
+    
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1 class="text-center h1">Comparative Protein Analysis</h1>
+  <!-- Animated input section -->
+<div id="coordinatesInput" class="text-center animated fadeIn">
+  <h4>Enter PDB code:</h4>
+  <p class="mb-4">Example format: "1crn"</p>
+  <div class="input-group">
+    <input type="text" id="pdbCodeInput" class="form-control" placeholder="Enter PDB code here">
+    <div class="input-group-append">
+      <button class="btn btn-primary animated pulse" onclick="visualizeMolecule()">Visualize</button>
+
+    </div>
+  </div>
+</div>
+</div>
+<div class="container">
+    <!-- Animated molecule container -->
+    <div id="container-01" class="mol-container animated zoomIn" style="width: 100%; height: 400px; background-color: transparent; text-align: center; "></div>
+
+  <div id="moleculeInfo" class="text-center"></div>
+</div>
+</div>
+  <div style="text-align: center; margin-top:16px ; ">
+
+    <button class="btn btn-secondary" onclick="showSphereStructure()">Sphere</button>
+    <button class="btn btn-secondary" onclick="showLinesStructure()">Lines</button>
+<button class="btn btn-secondary" onclick="showCrossStructure()">Cross</button>
+<button class="btn btn-secondary" onclick="showCartoonStructure()">Cartoon</button>
+
+  </div>
+  <p style="text-align: center; margin-top:16px; color: #fff; text-shadow: 2px 2px 10px #000;">Designed and Developed by <strong>Adnan Bhanwadia, Khushali Patel, Farzana Samnani</strong> under the guidance of <strong>Prof. Ruchi Verma</strong></p>
+  
+
+
+  <!-- 3Dmol.js CDN -->
+  <script src="https://3Dmol.org/build/3Dmol-min.js"></script>
+  <script src="https://3Dmol.org/build/3Dmol.ui-min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.1/dist/umd/popper.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+  <script>
+    // Declare the viewer variable at a higher scope
+    let viewer;
+
+    async function fetchPDBData(pdbCode) {
+  try {
+    let response = await fetch(`https://files.rcsb.org/download/${pdbCode}.pdb`);
+    let pdbText = await response.text();
+    return pdbText;
+  } catch (error) {
+    alert("Error fetching PDB data. Please check the PDB code and try again.");
+    return null;
+  }
+}
+
+async function visualizeMolecule() {
+  let pdbCode = document.getElementById('pdbCodeInput').value.trim().toLowerCase();
+  if (pdbCode === "") {
+    alert("Please enter a valid PDB code.");
+    return;
+  }
+
+  let element = document.querySelector('#container-01');
+  let config = { noBackground: true };
+  viewer = $3Dmol.createViewer(element, config);
+
+  // Fetch PDB data and generate molecule data dynamically
+  let pdbData = await fetchPDBData(pdbCode);
+  if (pdbData) {
+    let { data, info } = generateMoleculeData(pdbData);
+    if (data) {
+      viewer.addModel(data, 'pdb');
+      viewer.setStyle({ stick: {} });
+      viewer.zoomTo();
+      viewer.render();
+      viewer.zoom(0.8, 2000);
+      viewer.setBackgroundColor('#07192d');
+
+      // Display molecule information on the HTML page
+      let moleculeInfoElement = document.querySelector('#moleculeInfo');
+      moleculeInfoElement.textContent = "Molecule Information: " + info;
+    }
+  }
+}
+
+// Function to generate molecule data based on the PDB data
+function generateMoleculeData(pdbData) {
+  // Modify this function to process the PDB data and extract the atom coordinates and information
+  // For simplicity, we'll just return the raw PDB data as moleculeData
+  return { data: pdbData, info: extractMoleculeInformation(pdbData) };
+}
+
+// Function to extract molecule information from PDB data
+function extractMoleculeInformation(pdbData) {
+  let lines = pdbData.split('\n');
+  let moleculeInfo = "";
+  for (let line of lines) {
+    if (line.startsWith('TITLE')) {
+      moleculeInfo += line.substr(10).trim() + " ";
+    }
+  }
+  return moleculeInfo;
+}
+
+    
+
+    function showSphereStructure() {
+      // Check if the viewer has been initialized
+      if (viewer) {
+        viewer.setStyle({ sphere: {} });
+        viewer.render();
+      }
+    }
+    function showLinesStructure() {
+    if (viewer) {
+      viewer.setStyle({ line: {} });
+      viewer.render();
+    }
+  }
+
+  function showCrossStructure() {
+    if (viewer) {
+      viewer.setStyle({ cross: {} });
+      viewer.render();
+    }
+  }
+
+  function showCartoonStructure() {
+    if (viewer) {
+      viewer.setStyle({ cartoon: {} });
+      viewer.render();
+    }
+  }
+
+
+  </script>
+</body>
+</html>
